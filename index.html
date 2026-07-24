@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUTEC Padlet Space</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Google Fonts: Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+        .board-canvas { min-height: calc(100vh - 180px); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Top Navigation Bar -->
+    <nav class="bg-indigo-600 text-white shadow-md p-4 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold tracking-wide cursor-pointer" onclick="showDashboard()">📌 MUTEC Padlet Space</h1>
+            <div id="nav-actions" class="flex gap-2">
+                <!-- ปุ่มปรับเปลี่ยนตามหน้าจอจะถูกแทรกที่นี่ -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto p-4 md:p-6">
+        
+        <!-- SECTION 1: LOBBY / DASHBOARD (หน้าแรกของครู/นักเรียน) -->
+        <div id="view-dashboard" class="block space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">ระบบบอร์ดกิจกรรมการเรียนรู้</h2>
+                    <p class="text-slate-500">สร้างบอร์ดคำถาม ยิงคำถาม หรือแชร์กิจกรรมในชั้นเรียนได้ง่ายๆ</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button onclick="popupCreateRoom()" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-sm">
+                        ➕ สร้างห้องเรียนใหม่ (สำหรับครู)
+                    </button>
+                    <button onclick="popupJoinRoom()" class="flex-1 md:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-sm">
+                        🔑 ใส่รหัสเข้าห้อง
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: PADLET BOARD ROOM (หน้ากระดานกิจกรรมย่อย) -->
+        <div id="view-board" class="hidden space-y-6">
+            <!-- ข้อมูลห้องเรียน -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <span id="board-teacher" class="text-xs font-semibold uppercase tracking-wider bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md">Teacher</span>
+                    <h2 id="board-title" class="text-3xl font-bold text-slate-900 mt-2">ชื่อห้องเรียน</h2>
+                    <p id="board-desc" class="text-slate-500 mt-1">รายละเอียดวิชาหรือกิจกรรม</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <button onclick="popupShareQR()" class="flex-1 md:flex-initial bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+                        📱 QR Code แชร์ห้อง
+                    </button>
+                    <button onclick="popupCreatePost()" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md">
+                        📌 เขียนโพสต์ใหม่
+                    </button>
+                </div>
+            </div>
+
+            <!-- พื้นที่แสดง Cards / Columns แบบ Grid Responsive -->
+            <div id="board-posts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 board-canvas items-start">
+                <!-- โพสต์ย่อยจะถูก Render ที่นี่ -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // ⚠️ วาง URL ของ Web App Google Apps Script ที่ Deploy แล้วที่นี่
+        const WEB_APP_URL = "ใส่_WEB_APP_URL_จาก_GAS_ตรงนี้";
+        
+        let currentRoomId = "";
+        let refreshInterval = null;
+
+        // ตรวจสอบเช็คว่ามี Parameter roomId ใน URL หรือไม่ (กรณีน้องๆ สแกน QR Code มา)
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const rId = urlParams.get('room');
+            if (rId) {
+                openRoom(rId);
+            } else {
+                showDashboard();
+            }
+        });
+
+        function showDashboard() {
+            currentRoomId = "";
+            if(refreshInterval) clearInterval(refreshInterval);
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('view-board').classList.add('hidden');
+            document.getElementById('nav-actions').innerHTML = '';
+        }
+
+        // เรียกข้อมูลห้องและโพสต์
+        async function openRoom(roomId) {
+            currentRoomId = roomId;
+            Swal.fire({ title: 'กำลังเข้าสู่ห้องเรียน...', didOpen: () => { Swal.showLoading() } });
+
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "getRoomDetails", roomId: roomId })
+                });
+                const res = await response.json();
+                Swal.close();
+
+                if (res.success) {
+                    // ปรับ URL บน Browser ให้สามารถแชร์ต่อได้ง่าย
+                    window.history.pushState({}, '', `?room=${roomId}`);
+                    
+                    document.getElementById('view-dashboard').classList.add('hidden');
+                    document.getElementById('view-board').classList.remove('hidden');
+                    
+                    // อัปเดตข้อมูลหัวบอร์ด
+                    document.getElementById('board-title').innerText = res.room.roomName;
+                    document.getElementById('board-desc').innerText = res.room.description;
+                    document.getElementById('board-teacher').innerText = `ผู้สอน: ${res.room.teacherName}`;
+                    
+                    // ปรับปรุงเมนูบาร์
+                    document.getElementById('nav-actions').innerHTML = `
+                        <button onclick="showDashboard()" class="bg-indigo-700 hover:bg-indigo-800 text-xs md:text-sm px-4 py-2 rounded-lg transition">🏠 กลับหน้าแรก</button>
+                        <button onclick="loadBoardDataOnly()" class="bg-indigo-500 hover:bg-indigo-400 text-xs md:text-sm px-3 py-2 rounded-lg transition">🔄 รีเฟรช</button>
+                    `;
+
+                    renderPosts(res.posts);
+                    
+                    // สั่ง Auto-refresh ทุกๆ 10 วินาที เพื่อจำลองความเป็น Real-time ให้ห้องเรียน
+                    if(!refreshInterval) {
+                        refreshInterval = setInterval(loadBoardDataOnly, 10000);
+                    }
+                } else {
+                    Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                    showDashboard();
+                }
+            } catch (error) {
+                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถดึงข้อมูลจาก Server ได้', 'error');
+            }
+        }
+
+        // รีเฟรชเฉพาะโพสต์ (เงียบๆ หลังบ้าน)
+        async function loadBoardDataOnly() {
+            if (!currentRoomId) return;
+            try {
+                const response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "getRoomDetails", roomId: currentRoomId })
+                });
+                const res = await response.json();
+                if (res.success) renderPosts(res.posts);
+            } catch (e) { console.log("Silent refresh error"); }
+        }
+
+        // จัดการ Render การ์ดคำถามและคอมเมนต์ย่อย
+        function renderPosts(posts) {
+            const container = document.getElementById('board-posts-container');
+            container.innerHTML = '';
+
+            if(posts.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-400">
+                        ยังไม่มีโพสต์คำถามหรือกิจกรรมในห้องนี้ กดปุ่ม "เขียนโพสต์ใหม่" เพื่อเริ่มระดมสมองกันเลย!
+                    </div>
+                `;
+                return;
+            }
+
+            posts.forEach(post => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between";
+                card.style.borderTop = `6px solid ${post.color || '#6366f1'}`;
+
+                // ส่วนข้อความหลัก
+                let commentsHtml = '';
+                if(post.comments && post.comments.length > 0) {
+                    post.comments.forEach(c => {
+                        commentsHtml += `
+                            <div class="bg-slate-50 p-2.5 rounded-xl text-xs border border-slate-100">
+                                <span class="font-bold text-slate-700">${c.author}:</span>
+                                <p class="text-slate-600 mt-0.5">${c.content}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    commentsHtml = `<p class="text-center text-xs text-slate-400 py-2">ยังไม่มีข้อเสนอแนะ</p>`;
+                }
+
+                card.innerHTML = `
+                    <div class="p-5 space-y-3">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">${post.author}</span>
+                            <span class="text-[10px] text-slate-400">${new Date(post.createdAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</span>
+                        </div>
+                        <p class="text-slate-800 text-sm whitespace-pre-wrap font-medium">${post.content}</p>
+                        
+                        <hr class="border-slate-100">
+                        
+                        <!-- โซนคอมเมนต์ตอบกลับ -->
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            <h4 class="text-xs font-bold text-slate-500">💬 ความคิดเห็น (${post.comments ? post.comments.length : 0})</h4>
+                            ${commentsHtml}
+                        </div>
+                    </div>
+
+                    <!-- ปุ่มส่งคอมเมนต์ท้ายการ์ด -->
+                    <div class="p-3 bg-slate-50 border-t border-slate-100 flex gap-1.5">
+                        <input type="text" id="input-com-${post.postId}" placeholder="พิมพ์ตอบกลับ..." class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                        <button onclick="submitComment('${post.postId}')" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">ส่ง</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- POPUP HANDLERS (SweetAlert2) ---
+
+        // 1. ครูสร้างห้องเรียน
+        function popupCreateRoom() {
+            Swal.fire({
+                title: '🏫 สร้างบอร์ดห้องเรียนใหม่',
+                html: `
+                    <input id="swal-roomName" class="swal2-input" placeholder="ชื่อวิชา / กิจกรรม">
+                    <input id="swal-teacherName" class="swal2-input" placeholder="ชื่ออาจารย์ผู้สอน">
+                    <input id="swal-desc" class="swal2-input" placeholder="คำอธิบายหรือคำชี้แจงย่อย">
+                `,
+                focusConfirm: false,
+                confirmButtonText: 'สร้างห้องเรียน',
+                showCancelButton: true,
+                cancelButtonText: 'ยกเลิก',
+                preConfirm: () => {
+                    return {
+                        roomName: document.getElementById('swal-roomName').value.trim(),
+                        teacherName: document.getElementById('swal-teacherName').value.trim(),
+                        description: document.getElementById('swal-desc').value.trim()
+                    }
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const data = result.value;
+                    if(!data.roomName || !data.teacherName) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลสำคัญให้ครบถ้วนครับ', 'warning');
+                    
+                    Swal.fire({ title: 'กำลังบันทึกข้อมูล...', didOpen: () => { Swal.showLoading() } });
+                    const res = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "createRoom", ...data })
+                    }).then(r => r.json());
+                    
+                    if(res.success) {
+                        Swal.fire('สำเร็จ!', 'สร้างห้องเรียนเรียนร้อยแล้วครับ', 'success').then(() => openRoom(res.roomId));
+                    }
+                }
+            });
+        }
+
+        // 2. นักเรียนพิมพ์รหัสเข้าห้อง
+        function popupJoinRoom() {
+            Swal.fire({
+                title: '🔑 เข้าสู่ห้องเรียน',
+                input: 'text',
+                inputPlaceholder: 'วางรหัสห้องเรียนที่นี่ (เช่น ROOM_xxxx)',
+                showCancelButton: true,
+                confirmButtonText: 'เข้าห้อง',
+                cancelButtonText: 'ยกเลิก'
+            }).then((res) => {
+                if(res.isConfirmed && res.value.trim()) {
+                    openRoom(res.value.trim());
+                }
+            });
+        }
+
+        // 3. ป๊อปอัปสร้างโพสต์ / ยิงคำถาม
+        function popupCreatePost() {
+            Swal.fire({
+                title: '📌 สร้างโพสต์หรือการ์ดคำถาม',
+                html: `
+                    <input id="swal-author" class="swal2-input" placeholder="ชื่อของคุณ/ชื่ออาจารย์">
+                    <textarea id="swal-content" class="swal2-input h-24" placeholder="พิมพ์ข้อความคำถามหรือแชร์ไอเดีย..."></textarea>
+                    <div class="mt-3 flex items-center justify-center gap-3">
+                        <label class="text-xs font-bold text-slate-500">สีขอบการ์ด:</label>
+                        <input type="color" id="swal-color" value="#6366f1" class="w-10 h-8 rounded border cursor-pointer">
+                    </div>
+                `,
+                focusConfirm: false,
+                confirmButtonText: 'แปะบอร์ด',
+                showCancelButton: true,
+                preConfirm: () => {
+                    return {
+                        author: document.getElementById('swal-author').value.trim() || "ไม่ระบุชื่อ",
+                        content: document.getElementById('swal-content').value.trim(),
+                        color: document.getElementById('swal-color').value
+                    }
+                }
+            }).then(async (result) => {
+                if(result.isConfirmed && result.value.content) {
+                    const res = await fetch(WEB_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "createPost", roomId: currentRoomId, ...result.value })
+                    }).then(r => r.json());
+                    
+                    if(res.success) loadBoardDataOnly();
+                }
+            });
+        }
+
+        // 4. ส่งข้อความตอบกลับย่อย (Comment)
+        async function submitComment(postId) {
+            const input = document.getElementById(`input-com-${postId}`);
+            const content = input.value.trim();
+            if(!content) return;
+
+            // สุ่มหรือถามชื่อเล่นแบบง่าย (หรือเปลี่ยนเป็นระบบจำค่าใน localStorage ได้ครับ)
+            let author = localStorage.getItem('padlet_username');
+            if(!author) {
+                const { value: name } = await Swal.fire({
+                    title: 'ระบุชื่อเล่นของคุณ',
+                    input: 'text',
+                    inputPlaceholder: 'พิมพ์ชื่อที่จะให้ปรากฏในคอมเมนต์',
+                    allowOutsideClick: false
+                });
+                author = name ? name.trim() : "ผู้ร่วมกิจกรรม";
+                localStorage.setItem('padlet_username', author);
+            }
+
+            input.value = ''; // เคลียร์ช่อง input ทันทีเพื่อความรวดเร็วของ UI
+            
+            const res = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: "createComment", postId: postId, author: author, content: content })
+            }).then(r => r.json());
+
+            if(res.success) loadBoardDataOnly();
+        }
+
+        // 5. แสดงกล่อง QR Code ให้ครูเปิดขึ้นโปรเจกเตอร์หน้าห้อง
+        function popupShareQR() {
+            const currentUrl = window.location.href;
+            Swal.fire({
+                title: '📱 นักเรียนสแกนเข้าร่วมบอร์ด',
+                html: `
+                    <div class="flex flex-col items-center justify-center space-y-4">
+                        <div id="qrcode-area" class="p-2 bg-white inline-block"></div>
+                        <p class="text-xs text-slate-500 font-mono break-all bg-slate-100 p-2 rounded-lg w-full">รหัสห้อง: ${currentRoomId}</p>
+                    </div>
+                `,
+                didOpen: () => {
+                    new QRCode(document.getElementById("qrcode-area"), {
+                        text: currentUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark : "#1e1b4b",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
