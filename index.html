@@ -1,515 +1,543 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUTEC Padlet Space</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <!-- Google Fonts: Sarabun -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- QR Code Generator -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
-        .board-canvas { min-height: calc(100vh - 200px); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduPadlet - ห้องเรียนโต้ตอบออนไลน์</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Font: Sarabun -->
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background-color: #f8fafc;
+    }
+    .masonry-grid {
+      column-count: 1;
+      column-gap: 1.5rem;
+    }
+    @media (min-width: 640px) { .masonry-grid { column-count: 2; } }
+    @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
+    .masonry-item {
+      break-inside: avoid;
+      margin-bottom: 1.5rem;
+    }
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-800">
+<body class="min-h-screen flex flex-col text-slate-800">
 
-    <!-- Top Navigation Bar -->
-    <nav class="bg-indigo-600 text-white shadow-md p-4 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="text-xl font-bold tracking-wide cursor-pointer" onclick="checkAuthAndRedirect()">📌 MUTEC Padlet Space</h1>
-            <div id="nav-actions" class="flex items-center gap-3">
-                <!-- User Profile & Logout จะถูก Render ที่นี่ -->
-            </div>
+  <!-- Navbar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateHome()">
+          <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md">
+            <i class="fa-solid fa-shapes text-xl"></i>
+          </div>
+          <span class="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">EduPadlet</span>
         </div>
-    </nav>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto p-4 md:p-6">
+        <!-- User Profile Info -->
+        <div id="userInfoBar" class="hidden flex items-center space-x-4">
+          <div class="text-right hidden sm:block">
+            <p id="navUserName" class="font-semibold text-slate-700 text-sm leading-tight"></p>
+            <span id="navUserRole" class="inline-block text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium"></span>
+          </div>
+          <button onclick="logout()" class="text-slate-500 hover:text-red-600 p-2 rounded-lg hover:bg-slate-100 transition" title="ออกจากระบบ">
+            <i class="fa-solid fa-right-from-bracket text-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Container หลัก -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- 1. หน้าล็อกอิน / ลงทะเบียน -->
+    <div id="authSection" class="max-w-md mx-auto my-10 bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+      <div class="text-center mb-6">
+        <h2 class="text-2xl font-bold text-slate-800">เข้าสู่ระบบ / ลงทะเบียน</h2>
+        <p class="text-sm text-slate-500 mt-1">เข้าสู่พื้นที่แลกเปลี่ยนเรียนรู้ออนไลน์</p>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="flex border-b border-slate-200 mb-6">
+        <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600">เข้าสู่ระบบ</button>
+        <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600">ลงทะเบียน</button>
+      </div>
+
+      <!-- ฟอร์มเข้าสู่ระบบ -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="loginUsername" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">รหัสผ่าน</label>
+          <input type="password" id="loginPassword" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-indigo-200 transition">เข้าสู่ระบบ</button>
+      </form>
+
+      <!-- ฟอร์มลงทะเบียน -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ชื่อ-นามสกุล</label>
+          <input type="text" id="regFullname" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ประเภทผู้ใช้งาน</label>
+          <select id="regRole" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="student">นักเรียน / นักศึกษา</option>
+            <option value="teacher">คุณครู / ผู้สอน</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">ชื่อผู้ใช้งาน (Username)</label>
+          <input type="text" id="regUsername" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">รหัสผ่าน</label>
+          <input type="password" id="regPassword" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none">
+        </div>
+        <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl shadow-lg shadow-purple-200 transition">สมัครสมาชิก</button>
+      </form>
+    </div>
+
+    <!-- 2. หน้ารายวิชาทั้งหมด (Dashboard) -->
+    <div id="dashboardSection" class="hidden">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div>
+          <h1 id="dashboardTitle" class="text-2xl font-bold text-slate-800">รายวิชาทั้งหมด</h1>
+          <p id="dashboardSub" class="text-sm text-slate-500 mt-1">เลือกรายวิชาเพื่อเข้าสู่บอร์ดโต้ตอบ</p>
+        </div>
         
-        <!-- VIEW 1: AUTHENTICATION (Login / Register Card) -->
-        <div id="view-auth" class="max-w-md mx-auto my-10 bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
-            <!-- Tab Switch -->
-            <div class="flex border-b border-slate-200 mb-6">
-                <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 font-bold text-indigo-600 border-b-2 border-indigo-600">เข้าสู่ระบบ</button>
-                <button id="tab-register" onclick="switchAuthTab('register')" class="flex-1 pb-3 font-bold text-slate-400 border-b-2 border-transparent">สมัครสมาชิก</button>
+        <button id="addCourseBtn" onclick="openCreateCourseModal()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-md flex items-center space-x-2 transition">
+          <i class="fa-solid fa-plus"></i>
+          <span>สร้างรายวิชาใหม่</span>
+        </button>
+      </div>
+
+      <!-- รายการการ์ดวิชา -->
+      <div id="coursesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- 3. หน้ากระดานโต้ตอบรายวิชา (Padlet Board View) -->
+    <div id="boardSection" class="hidden">
+      <!-- Header วิชา -->
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm mb-6">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div class="flex items-center space-x-3">
+            <button onclick="navigateHome()" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-xl text-slate-600 transition" title="กลับหน้ารวมวิชา">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div>
+              <h2 id="boardCourseName" class="text-2xl font-bold text-slate-800"></h2>
+              <p id="boardCourseDesc" class="text-slate-500 text-sm mt-0.5"></p>
             </div>
-
-            <!-- Form: Login -->
-            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="text-xs font-bold text-slate-600">ชื่อผู้ใช้ (Username)</label>
-                    <input type="text" id="login-username" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600">รหัสผ่าน</label>
-                    <input type="password" id="login-password" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md">เข้าสู่ระบบ</button>
-            </form>
-
-            <!-- Form: Register -->
-            <form id="form-register" onsubmit="handleRegister(event)" class="space-y-4 hidden">
-                <div>
-                    <label class="text-xs font-bold text-slate-600">ชื่อ-นามสกุล (สำหรับแสดงบนบอร์ด)</label>
-                    <input type="text" id="reg-fullName" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600">บทบาทผู้ใช้งาน</label>
-                    <select id="reg-role" class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                        <option value="student">นักเรียน / นักศึกษา</option>
-                        <option value="teacher">ครู / อาจารย์ผู้สอน</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600">ชื่อผู้ใช้ (Username)</label>
-                    <input type="text" id="reg-username" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-slate-600">รหัสผ่าน</label>
-                    <input type="password" id="reg-password" required class="w-full mt-1 p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition shadow-md">สมัครสมาชิก</button>
-            </form>
+          </div>
+          
+          <div class="flex items-center space-x-3">
+            <button onclick="showQRCodeModal()" class="bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-xl font-medium text-sm border border-purple-200 flex items-center space-x-2 transition">
+              <i class="fa-solid fa-qrcode text-base"></i>
+              <span>QR Code วิชา</span>
+            </button>
+            <button onclick="openCreatePostModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-medium text-sm shadow flex items-center space-x-2 transition">
+              <i class="fa-solid fa-pen"></i>
+              <span>โพสต์ข้อความ</span>
+            </button>
+          </div>
         </div>
+      </div>
 
-        <!-- VIEW 2: DASHBOARD (หน้าแรกหลังล็อกอิน) -->
-        <div id="view-dashboard" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">ยินดีต้อนรับสู่ระบบกระดานเรียนรู้</h2>
-                    <p class="text-slate-500">เลือกเข้าสู่ห้องเรียนด้วยรหัสห้อง หรือสร้างห้องเรียนใหม่เพื่อเริ่มสอน</p>
-                </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <button id="btn-create-room" onclick="popupCreateRoom()" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-sm hidden">
-                        ➕ สร้างห้องเรียนใหม่ (สำหรับครู)
-                    </button>
-                    <button onclick="popupJoinRoom()" class="flex-1 md:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl transition shadow-sm">
-                        🔑 ใส่รหัสเข้าห้อง
-                    </button>
-                </div>
-            </div>
-        </div>
+      <!-- กระดานโพสต์แบบ Masonry Grid -->
+      <div id="postsContainer" class="masonry-grid"></div>
+    </div>
 
-        <!-- VIEW 3: PADLET BOARD ROOM (หน้ากระดานกิจกรรมย่อย) -->
-        <div id="view-board" class="hidden space-y-6">
-            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <span id="board-teacher" class="text-xs font-semibold uppercase tracking-wider bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md">Teacher</span>
-                    <h2 id="board-title" class="text-3xl font-bold text-slate-900 mt-2">ชื่อห้องเรียน</h2>
-                    <p id="board-desc" class="text-slate-500 mt-1">รายละเอียดวิชาหรือกิจกรรม</p>
-                </div>
-                <div class="flex gap-2 w-full md:w-auto">
-                    <button onclick="popupShareQR()" class="flex-1 md:flex-initial bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
-                        📱 QR Code แชร์ห้อง
-                    </button>
-                    <button onclick="popupCreatePost()" class="flex-1 md:flex-initial bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl transition shadow-md">
-                        📌 เขียนโพสต์ใหม่
-                    </button>
-                </div>
-            </div>
+  </main>
 
-            <!-- โซนการ์ดโพสต์ -->
-            <div id="board-posts-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 board-canvas items-start">
-            </div>
-        </div>
+  <!-- Modal: แสดง QR Code -->
+  <div id="qrModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-2xl max-w-sm w-full text-center relative shadow-2xl">
+      <button onclick="closeQRModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+      <h3 class="text-lg font-bold text-slate-800 mb-1">สแกนเพื่อเข้าสู่วิชา</h3>
+      <p id="qrCourseTitle" class="text-xs text-slate-500 mb-4"></p>
+      <div id="qrcode" class="flex justify-center p-4 bg-slate-50 rounded-xl border border-slate-100 mb-4"></div>
+      <p class="text-xs text-slate-400">นักเรียนสามารถสแกน QR Code นี้เพื่อเข้าร่วมกระดานโต้ตอบได้ทันที</p>
+    </div>
+  </div>
 
-    </main>
+  <!-- JavaScript Application Logic -->
+  <script>
+    // URL ของ Google Apps Script Web App
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNxQRAsrm2LFx0KsfX-oUaz8rUSya58R-BZTnUOQOt03YreyvPKT5DtEwWVk6e6xivBA/exec";
 
-    <script>
-        // Web App URL API ที่ฝังเรียบร้อยแล้ว
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxNxQRAsrm2LFx0KsfX-oUaz8rUSya58R-BZTnUOQOt03YreyvPKT5DtEwWVk6e6xivBA/exec";
-        
-        let currentUser = null;
-        let currentRoomId = "";
-        let refreshInterval = null;
+    let currentUser = null;
+    let currentCourse = null;
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedUser = localStorage.getItem('padlet_user');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-            }
-            checkAuthAndRedirect();
+    // --- System Initialize ---
+    window.onload = function() {
+      checkStoredUser();
+      checkURLParams();
+    };
+
+    function checkStoredUser() {
+      const stored = localStorage.getItem('padlet_user');
+      if (stored) {
+        currentUser = JSON.parse(stored);
+        updateUIForUser();
+      } else {
+        showSection('authSection');
+      }
+    }
+
+    function checkURLParams() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const courseId = urlParams.get('courseId');
+      
+      if (courseId) {
+        if (!currentUser) {
+          Swal.fire({
+            icon: 'info',
+            title: 'กรุณาเข้าสู่ระบบก่อน',
+            text: 'กรุณาลงทะเบียนหรือเข้าสู่ระบบเพื่อเข้าสู่รายวิชานี้',
+            confirmButtonColor: '#4f46e5'
+          });
+        } else {
+          joinAndOpenCourse(courseId);
+        }
+      }
+    }
+
+    // --- Authentication Logic ---
+    function switchAuthTab(tab) {
+      if (tab === 'login') {
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('tabLoginBtn').className = "flex-1 py-2 font-semibold text-indigo-600 border-b-2 border-indigo-600";
+        document.getElementById('tabRegisterBtn').className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600";
+      } else {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('tabRegisterBtn').className = "flex-1 py-2 font-semibold text-purple-600 border-b-2 border-purple-600";
+        document.getElementById('tabLoginBtn').className = "flex-1 py-2 font-semibold text-slate-400 hover:text-slate-600";
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+
+      Swal.showLoading();
+      const res = await apiCall({ action: 'login', username, password });
+      Swal.close();
+
+      if (res.success) {
+        currentUser = res.user;
+        localStorage.setItem('padlet_user', JSON.stringify(currentUser));
+        updateUIForUser();
+        Swal.fire({ icon: 'success', title: 'เข้าสู่ระบบสำเร็จ', timer: 1200, showConfirmButton: false });
+      } else {
+        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message, confirmButtonColor: '#4f46e5' });
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const fullname = document.getElementById('regFullname').value;
+      const role = document.getElementById('regRole').value;
+      const username = document.getElementById('regUsername').value;
+      const password = document.getElementById('regPassword').value;
+
+      Swal.showLoading();
+      const res = await apiCall({ action: 'register', fullname, role, username, password });
+      Swal.close();
+
+      if (res.success) {
+        currentUser = res.user;
+        localStorage.setItem('padlet_user', JSON.stringify(currentUser));
+        updateUIForUser();
+        Swal.fire({ icon: 'success', title: 'ลงทะเบียนสำเร็จ', timer: 1200, showConfirmButton: false });
+      } else {
+        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: res.message, confirmButtonColor: '#4f46e5' });
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('padlet_user');
+      currentUser = null;
+      currentCourse = null;
+      document.getElementById('userInfoBar').classList.add('hidden');
+      showSection('authSection');
+    }
+
+    function updateUIForUser() {
+      document.getElementById('navUserName').innerText = currentUser.fullname;
+      document.getElementById('navUserRole').innerText = currentUser.role === 'teacher' ? 'คุณครู' : 'นักเรียน';
+      document.getElementById('userInfoBar').classList.remove('hidden');
+
+      if (currentUser.role === 'teacher') {
+        document.getElementById('addCourseBtn').classList.remove('hidden');
+        document.getElementById('dashboardTitle').innerText = 'รายวิชาที่คุณสร้างขึ้น';
+      } else {
+        document.getElementById('addCourseBtn').classList.add('hidden');
+        document.getElementById('dashboardTitle').innerText = 'รายวิชาที่ฉันเข้าร่วม';
+      }
+
+      loadCourses();
+    }
+
+    // --- API Request Function ---
+    async function apiCall(payload) {
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
         });
+        return await response.json();
+      } catch (err) {
+        console.error(err);
+        return { success: false, message: 'ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้' };
+      }
+    }
 
-        function checkAuthAndRedirect() {
-            if (!currentUser) {
-                showView('auth');
-                return;
-            }
+    // --- Dashboard & Course Actions ---
+    async function loadCourses() {
+      showSection('dashboardSection');
+      const coursesList = document.getElementById('coursesList');
+      coursesList.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2">กำลังโหลดรายวิชา...</p></div>`;
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const rId = urlParams.get('room');
-            if (rId) {
-                openRoom(rId);
-            } else {
-                showDashboard();
-            }
+      const res = await apiCall({ action: 'getCourses', userId: currentUser.userId, role: currentUser.role });
+
+      if (res.success && res.courses.length > 0) {
+        coursesList.innerHTML = res.courses.map(c => `
+          <div onclick="openCourse('${c.courseId}')" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between group">
+            <div>
+              <div class="flex justify-between items-start mb-3">
+                <span class="bg-indigo-50 text-indigo-700 text-xs px-2.5 py-1 rounded-lg font-semibold border border-indigo-100">${c.courseId}</span>
+                <i class="fa-solid fa-arrow-right text-slate-300 group-hover:text-indigo-600 transition"></i>
+              </div>
+              <h3 class="text-lg font-bold text-slate-800 mb-2">${c.courseName}</h3>
+              <p class="text-slate-500 text-sm line-clamp-2">${c.description || 'ไม่มีคำอธิบาย'}</p>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+              <span><i class="fa-solid fa-user-tie mr-1"></i> ${c.teacherName}</span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        coursesList.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">ยังไม่มีรายวิชาในขณะนี้</div>`;
+      }
+    }
+
+    async function openCreateCourseModal() {
+      const { value: formValues } = await Swal.fire({
+        title: 'สร้างรายวิชาใหม่',
+        html: `
+          <input id="swalCourseName" class="swal2-input" placeholder="ชื่อรายวิชา (เช่น วิทยาการคำนวณ)">
+          <textarea id="swalCourseDesc" class="swal2-textarea" placeholder="คำอธิบายรายวิชา..."></textarea>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'สร้างวิชา',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#4f46e5',
+        preConfirm: () => {
+          return [
+            document.getElementById('swalCourseName').value,
+            document.getElementById('swalCourseDesc').value
+          ]
         }
+      });
 
-        function showView(viewName) {
-            document.getElementById('view-auth').classList.add('hidden');
-            document.getElementById('view-dashboard').classList.add('hidden');
-            document.getElementById('view-board').classList.add('hidden');
+      if (formValues && formValues[0]) {
+        Swal.showLoading();
+        const res = await apiCall({
+          action: 'createCourse',
+          courseName: formValues[0],
+          description: formValues[1],
+          userId: currentUser.userId,
+          userName: currentUser.fullname
+        });
+        Swal.close();
 
-            if (refreshInterval) clearInterval(refreshInterval);
-
-            if (viewName === 'auth') {
-                document.getElementById('view-auth').classList.remove('hidden');
-                renderNav();
-            } else if (viewName === 'dashboard') {
-                document.getElementById('view-dashboard').classList.remove('hidden');
-                renderNav();
-            } else if (viewName === 'board') {
-                document.getElementById('view-board').classList.remove('hidden');
-                renderNav();
-            }
+        if (res.success) {
+          Swal.fire({ icon: 'success', title: 'สร้างรายวิชาเรียบร้อยแล้ว', timer: 1200, showConfirmButton: false });
+          loadCourses();
         }
+      }
+    }
 
-        function renderNav() {
-            const navActions = document.getElementById('nav-actions');
-            if (!currentUser) {
-                navActions.innerHTML = '';
-                return;
-            }
+    async function joinAndOpenCourse(courseId) {
+      await apiCall({ action: 'joinCourse', userId: currentUser.userId, courseId: courseId });
+      openCourse(courseId);
+    }
 
-            const roleBadge = currentUser.role === 'teacher' ? '👨‍🏫 ครูผู้สอน' : '👨‍🎓 นักเรียน';
-            navActions.innerHTML = `
-                <div class="text-right hidden sm:block">
-                    <div class="text-sm font-bold">${currentUser.fullName}</div>
-                    <div class="text-[10px] text-indigo-200">${roleBadge}</div>
+    async function openCourse(courseId) {
+      Swal.showLoading();
+      const res = await apiCall({ action: 'getCourseDetails', courseId: courseId });
+      Swal.close();
+
+      if (res.success) {
+        currentCourse = res.course;
+        document.getElementById('boardCourseName').innerText = currentCourse.courseName;
+        document.getElementById('boardCourseDesc').innerText = currentCourse.description;
+        showSection('boardSection');
+        loadPosts();
+      } else {
+        Swal.fire({ icon: 'error', title: 'ไม่พบรายวิชา', text: res.message });
+      }
+    }
+
+    // --- Padlet Board & Post Actions ---
+    async function loadPosts() {
+      const postsContainer = document.getElementById('postsContainer');
+      postsContainer.innerHTML = `<div class="col-span-full text-center py-10 text-slate-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><p class="mt-2">กำลังโหลดโพสต์...</p></div>`;
+
+      const res = await apiCall({ action: 'getPosts', courseId: currentCourse.courseId });
+
+      if (res.success && res.posts.length > 0) {
+        postsContainer.innerHTML = res.posts.map(post => `
+          <div class="masonry-item bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+            <div class="flex justify-between items-center mb-3">
+              <div class="flex items-center space-x-2">
+                <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
+                  ${post.authorName ? post.authorName.charAt(0) : 'U'}
                 </div>
-                <button onclick="handleLogout()" class="bg-indigo-700 hover:bg-indigo-800 text-xs px-3 py-2 rounded-lg transition">ออกจากระบบ</button>
-            `;
+                <div>
+                  <h4 class="text-sm font-semibold text-slate-800">${post.authorName}</h4>
+                  <span class="text-[10px] text-slate-400">${new Date(post.createdAt).toLocaleDateString('th-TH')}</span>
+                </div>
+              </div>
+              <span class="text-[10px] px-2 py-0.5 rounded-full ${post.role === 'teacher' ? 'bg-purple-100 text-purple-700 font-semibold' : 'bg-slate-100 text-slate-600'}">${post.role === 'teacher' ? 'ผู้สอน' : 'นักเรียน'}</span>
+            </div>
 
-            const btnCreateRoom = document.getElementById('btn-create-room');
-            if (btnCreateRoom) {
-                if (currentUser.role === 'teacher') btnCreateRoom.classList.remove('hidden');
-                else btnCreateRoom.classList.add('hidden');
-            }
+            <p class="text-slate-700 text-sm whitespace-pre-line mb-4">${post.content}</p>
+
+            <!-- Comments Section -->
+            <div class="border-t border-slate-100 pt-3 mt-3">
+              <div class="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1">
+                ${post.comments.map(c => `
+                  <div class="bg-slate-50 p-2.5 rounded-xl text-xs">
+                    <span class="font-semibold text-slate-700 mr-1">${c.authorName}:</span>
+                    <span class="text-slate-600">${c.content}</span>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Comment Input -->
+              <div class="flex gap-2">
+                <input type="text" id="comment-input-${post.postId}" placeholder="เขียนความคิดเห็น..." class="flex-1 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs focus:ring-1 focus:ring-indigo-500 outline-none">
+                <button onclick="submitComment('${post.postId}')" class="bg-indigo-600 text-white px-3 py-1.5 rounded-xl text-xs font-medium hover:bg-indigo-700 transition">
+                  <i class="fa-solid fa-paper-plane"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        postsContainer.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400">ยังไม่มีโพสต์ในกระดานนี้ เริ่มสร้างโพสต์แรกเลย!</div>`;
+      }
+    }
+
+    async function openCreatePostModal() {
+      const { value: content } = await Swal.fire({
+        title: 'สร้างโพสต์ใหม่',
+        input: 'textarea',
+        inputPlaceholder: 'แบ่งปันความคิดเห็น การทำงาน หรือคำถามที่นี่...',
+        showCancelButton: true,
+        confirmButtonText: 'โพสต์เลย',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#4f46e5'
+      });
+
+      if (content) {
+        Swal.showLoading();
+        const res = await apiCall({
+          action: 'createPost',
+          courseId: currentCourse.courseId,
+          userId: currentUser.userId,
+          userName: currentUser.fullname,
+          role: currentUser.role,
+          content: content
+        });
+        Swal.close();
+
+        if (res.success) {
+          loadPosts();
         }
+      }
+    }
 
-        // --- AUTHENTICATION HANDLERS ---
-        function switchAuthTab(tab) {
-            if (tab === 'login') {
-                document.getElementById('form-login').classList.remove('hidden');
-                document.getElementById('form-register').classList.add('hidden');
-                document.getElementById('tab-login').className = "flex-1 pb-3 font-bold text-indigo-600 border-b-2 border-indigo-600";
-                document.getElementById('tab-register').className = "flex-1 pb-3 font-bold text-slate-400 border-b-2 border-transparent";
-            } else {
-                document.getElementById('form-login').classList.add('hidden');
-                document.getElementById('form-register').classList.remove('hidden');
-                document.getElementById('tab-register').className = "flex-1 pb-3 font-bold text-indigo-600 border-b-2 border-indigo-600";
-                document.getElementById('tab-login').className = "flex-1 pb-3 font-bold text-slate-400 border-b-2 border-transparent";
-            }
-        }
+    async function submitComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      const content = input.value.trim();
+      if (!content) return;
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            Swal.fire({ title: 'กำลังตรวจสอบข้อมูล...', didOpen: () => Swal.showLoading() });
+      input.value = '';
+      await apiCall({
+        action: 'addComment',
+        postId: postId,
+        userId: currentUser.userId,
+        userName: currentUser.fullname,
+        content: content
+      });
 
-            const payload = {
-                action: 'login',
-                username: document.getElementById('login-username').value.trim(),
-                password: document.getElementById('login-password').value.trim()
-            };
+      loadPosts();
+    }
 
-            try {
-                const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json());
-                Swal.close();
+    // --- QR Code Modal Logic ---
+    function showQRCodeModal() {
+      document.getElementById('qrCourseTitle').innerText = currentCourse.courseName;
+      const qrcodeContainer = document.getElementById('qrcode');
+      qrcodeContainer.innerHTML = '';
 
-                if (res.success) {
-                    currentUser = res.user;
-                    localStorage.setItem('padlet_user', JSON.stringify(currentUser));
-                    checkAuthAndRedirect();
-                } else {
-                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ', res.message, 'error');
-                }
-            } catch (err) {
-                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error');
-            }
-        }
+      // สร้าง Link URL ที่เชื่อมมาที่หน้านี้พร้อม Course ID
+      const courseUrl = `${window.location.origin}${window.location.pathname}?courseId=${currentCourse.courseId}`;
 
-        async function handleRegister(e) {
-            e.preventDefault();
-            Swal.fire({ title: 'กำลังสมัครสมาชิก...', didOpen: () => Swal.showLoading() });
+      new QRCode(qrcodeContainer, {
+        text: courseUrl,
+        width: 180,
+        height: 180
+      });
 
-            const payload = {
-                action: 'register',
-                fullName: document.getElementById('reg-fullName').value.trim(),
-                role: document.getElementById('reg-role').value,
-                username: document.getElementById('reg-username').value.trim(),
-                password: document.getElementById('reg-password').value.trim()
-            };
+      document.getElementById('qrModal').classList.remove('hidden');
+    }
 
-            try {
-                const res = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) }).then(r => r.json());
-                Swal.close();
+    function closeQRModal() {
+      document.getElementById('qrModal').classList.add('hidden');
+    }
 
-                if (res.success) {
-                    currentUser = res.user;
-                    localStorage.setItem('padlet_user', JSON.stringify(currentUser));
-                    Swal.fire('สำเร็จ', 'สมัครสมาชิกเรียบร้อยแล้ว', 'success').then(() => checkAuthAndRedirect());
-                } else {
-                    Swal.fire('สมัครไม่สำเร็จ', res.message, 'error');
-                }
-            } catch (err) {
-                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error');
-            }
-        }
+    // --- Helper Functions ---
+    function showSection(sectionId) {
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('dashboardSection').classList.add('hidden');
+      document.getElementById('boardSection').classList.add('hidden');
 
-        function handleLogout() {
-            localStorage.removeItem('padlet_user');
-            currentUser = null;
-            window.history.pushState({}, '', window.location.pathname);
-            showView('auth');
-        }
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
 
-        function showDashboard() {
-            currentRoomId = "";
-            window.history.pushState({}, '', window.location.pathname);
-            showView('dashboard');
-        }
-
-        // --- BOARD ROOM HANDLERS ---
-        async function openRoom(roomId) {
-            if (!currentUser) return showView('auth');
-
-            currentRoomId = roomId;
-            Swal.fire({ title: 'กำลังเข้าสู่ห้องเรียน...', didOpen: () => Swal.showLoading() });
-
-            try {
-                const res = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "getRoomDetails", roomId: roomId })
-                }).then(r => r.json());
-                
-                Swal.close();
-
-                if (res.success) {
-                    window.history.pushState({}, '', `?room=${roomId}`);
-                    showView('board');
-
-                    document.getElementById('board-title').innerText = res.room.roomName;
-                    document.getElementById('board-desc').innerText = res.room.description;
-                    document.getElementById('board-teacher').innerText = `ผู้สอน: ${res.room.teacherName}`;
-
-                    renderPosts(res.posts);
-                    
-                    if (!refreshInterval) {
-                        refreshInterval = setInterval(loadBoardDataOnly, 10000);
-                    }
-                } else {
-                    Swal.fire('ข้อผิดพลาด', res.message, 'error').then(() => showDashboard());
-                }
-            } catch (error) {
-                Swal.fire('เชื่อมต่อล้มเหลว', 'ไม่สามารถเชื่อมต่อ Server ได้', 'error');
-            }
-        }
-
-        async function loadBoardDataOnly() {
-            if (!currentRoomId || !currentUser) return;
-            try {
-                const res = await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "getRoomDetails", roomId: currentRoomId })
-                }).then(r => r.json());
-                if (res.success) renderPosts(res.posts);
-            } catch (e) { console.log("Silent refresh error"); }
-        }
-
-        function renderPosts(posts) {
-            const container = document.getElementById('board-posts-container');
-            container.innerHTML = '';
-
-            if (posts.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center py-12 text-slate-400">
-                        ยังไม่มีโพสต์ในห้องนี้ กดปุ่ม "เขียนโพสต์ใหม่" เพื่อเริ่มระดมสมองกันเลย!
-                    </div>
-                `;
-                return;
-            }
-
-            posts.forEach(post => {
-                const card = document.createElement('div');
-                card.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between";
-                card.style.borderTop = `6px solid ${post.color || '#6366f1'}`;
-
-                let commentsHtml = '';
-                if (post.comments && post.comments.length > 0) {
-                    post.comments.forEach(c => {
-                        commentsHtml += `
-                            <div class="bg-slate-50 p-2.5 rounded-xl text-xs border border-slate-100">
-                                <span class="font-bold text-slate-700">${c.author}:</span>
-                                <p class="text-slate-600 mt-0.5">${c.content}</p>
-                            </div>
-                        `;
-                    });
-                } else {
-                    commentsHtml = `<p class="text-center text-xs text-slate-400 py-2">ยังไม่มีข้อเสนอแนะ</p>`;
-                }
-
-                card.innerHTML = `
-                    <div class="p-5 space-y-3">
-                        <div class="flex justify-between items-start">
-                            <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-full">${post.author}</span>
-                            <span class="text-[10px] text-slate-400">${new Date(post.createdAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}</span>
-                        </div>
-                        <p class="text-slate-800 text-sm whitespace-pre-wrap font-medium">${post.content}</p>
-                        
-                        <hr class="border-slate-100">
-                        
-                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                            <h4 class="text-xs font-bold text-slate-500">💬 ความคิดเห็น (${post.comments ? post.comments.length : 0})</h4>
-                            ${commentsHtml}
-                        </div>
-                    </div>
-
-                    <div class="p-3 bg-slate-50 border-t border-slate-100 flex gap-1.5">
-                        <input type="text" id="input-com-${post.postId}" placeholder="พิมพ์ตอบกลับ..." class="w-full text-xs px-2.5 py-1.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-                        <button onclick="submitComment('${post.postId}')" class="bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition">ส่ง</button>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        // --- POPUPS (SweetAlert2) ---
-        function popupCreateRoom() {
-            Swal.fire({
-                title: '🏫 สร้างบอร์ดห้องเรียนใหม่',
-                html: `
-                    <input id="swal-roomName" class="swal2-input" placeholder="ชื่อวิชา / กิจกรรม">
-                    <input id="swal-desc" class="swal2-input" placeholder="คำอธิบายหรือคำชี้แจงย่อย">
-                `,
-                focusConfirm: false,
-                confirmButtonText: 'สร้างห้องเรียน',
-                showCancelButton: true,
-                preConfirm: () => {
-                    return {
-                        roomName: document.getElementById('swal-roomName').value.trim(),
-                        description: document.getElementById('swal-desc').value.trim()
-                    }
-                }
-            }).then(async (result) => {
-                if (result.isConfirmed && result.value.roomName) {
-                    Swal.fire({ title: 'กำลังสร้างห้อง...', didOpen: () => Swal.showLoading() });
-                    const res = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ 
-                            action: "createRoom", 
-                            ...result.value,
-                            teacherName: currentUser.fullName,
-                            teacherId: currentUser.userId
-                        })
-                    }).then(r => r.json());
-                    
-                    if (res.success) {
-                        Swal.fire('สำเร็จ!', 'สร้างห้องเรียนเรียนร้อยแล้ว', 'success').then(() => openRoom(res.roomId));
-                    }
-                }
-            });
-        }
-
-        function popupJoinRoom() {
-            Swal.fire({
-                title: '🔑 เข้าสู่ห้องเรียน',
-                input: 'text',
-                inputPlaceholder: 'วางรหัสห้องเรียน (เช่น ROOM_xxxx)',
-                showCancelButton: true,
-                confirmButtonText: 'เข้าห้อง'
-            }).then((res) => {
-                if (res.isConfirmed && res.value.trim()) openRoom(res.value.trim());
-            });
-        }
-
-        function popupCreatePost() {
-            Swal.fire({
-                title: '📌 สร้างโพสต์หรือการ์ดคำถาม',
-                html: `
-                    <textarea id="swal-content" class="swal2-input h-24" placeholder="พิมพ์ข้อความคำถามหรือแชร์ไอเดีย..."></textarea>
-                    <div class="mt-3 flex items-center justify-center gap-3">
-                        <label class="text-xs font-bold text-slate-500">สีขอบการ์ด:</label>
-                        <input type="color" id="swal-color" value="#6366f1" class="w-10 h-8 rounded border cursor-pointer">
-                    </div>
-                `,
-                focusConfirm: false,
-                confirmButtonText: 'แปะบอร์ด',
-                showCancelButton: true,
-                preConfirm: () => {
-                    return {
-                        content: document.getElementById('swal-content').value.trim(),
-                        color: document.getElementById('swal-color').value
-                    }
-                }
-            }).then(async (result) => {
-                if (result.isConfirmed && result.value.content) {
-                    const res = await fetch(WEB_APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ 
-                            action: "createPost", 
-                            roomId: currentRoomId, 
-                            author: currentUser.fullName,
-                            authorId: currentUser.userId,
-                            ...result.value 
-                        })
-                    }).then(r => r.json());
-                    
-                    if (res.success) loadBoardDataOnly();
-                }
-            });
-        }
-
-        async function submitComment(postId) {
-            const input = document.getElementById(`input-com-${postId}`);
-            const content = input.value.trim();
-            if (!content) return;
-
-            input.value = '';
-            const res = await fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({ 
-                    action: "createComment", 
-                    postId: postId, 
-                    author: currentUser.fullName,
-                    authorId: currentUser.userId,
-                    content: content 
-                })
-            }).then(r => r.json());
-
-            if (res.success) loadBoardDataOnly();
-        }
-
-        function popupShareQR() {
-            const currentUrl = window.location.href;
-            Swal.fire({
-                title: '📱 สแกนเข้าร่วมห้องเรียนนี้',
-                html: `
-                    <div class="flex flex-col items-center justify-center space-y-4">
-                        <div id="qrcode-area" class="p-2 bg-white inline-block"></div>
-                        <p class="text-xs text-slate-500 font-mono break-all bg-slate-100 p-2 rounded-lg w-full">รหัสห้อง: ${currentRoomId}</p>
-                    </div>
-                `,
-                didOpen: () => {
-                    new QRCode(document.getElementById("qrcode-area"), {
-                        text: currentUrl,
-                        width: 200,
-                        height: 200,
-                        colorDark : "#1e1b4b",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.H
-                    });
-                }
-            });
-        }
-    </script>
+    function navigateHome() {
+      if (currentUser) {
+        currentCourse = null;
+        loadCourses();
+      } else {
+        showSection('authSection');
+      }
+    }
+  </script>
 </body>
 </html>
